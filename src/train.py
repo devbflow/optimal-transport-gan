@@ -5,6 +5,13 @@ import tqdm
 import torch
 import numpy as np
 
+from data.Latent import *
+from data.Gaussian import GaussianRing2D
+from networks.DenseCritic import DenseCritic
+from networks.DenseGenerator import DenseGenerator
+from models.AssignmentModel import AssignmentModel
+
+# TODO: import classes from directory
 
 class AssignmentTraining():
 
@@ -30,23 +37,28 @@ class AssignmentTraining():
                                      self.cost)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
-        self.n_non_assigned = self.latent.batch_size
+        #n_non_assigned = self.latent.batch_size
         for ml in tqdm.tqdm(range(n_main_loops)):
             data_latent_ratio = self.dataset.dataset_size / self.latent.batch_size
-            assign_loops = int(10 * data_latent_ratio * np.sqrt(main_loop/n_main_loops)) + 10
+            assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
+
             with tqdm.tqdm(range(n_critic_loops)) as crit_bar:
                 for cl in crit_bar:
-                    assign_arr, latent_sample, real_idx = self.model.find_assignments_critic(assign_loops)
-                    self.model.train_critic(assign_arr, optimizer=None)
-                    self.n_non_assigned = len(assign_arr) - np.count_nonzero(assign_arr)
-                    crit_bar.set_description(
-                            "Step 1: Number of assigned points " + str(self.n_non_assigned)
-                            + ", Variance of perfect assignment " + str(np.var(assign_arr)),
-                            refresh=False)
-            latent_sample = np.vstack(tuple(latent_sample))
-            real_idx = np.vstack(tuple(real_idx)).flatten()
+                    assign_arr, latent_samples, real_idcs = self.model.find_assignments_critic(assign_loops)
+                    # assign_arr: torch.tensor with assign_arr[i] = number of assignments to real data point i
+                    # latent_samples: list that contains
+                    # real_idcs: list that contains the indices per batch as torch.tensors
 
-            self.model.train_generator(real_idx, latent_sample, offset=16, optimizer=None)
+                    self.model.train_critic(assign_arr, optimizer=None)
+                    n_non_assigned = len(assign_arr) - np.count_nonzero(assign_arr)
+                    crit_bar.set_description(
+                            "Step 1: Number of non assigned points " + str(n_non_assigned)
+                            + ", Variance of perfect assignment " + str(np.var(assign_arr.detach().numpy())),
+                            refresh=False)
+            latent_samples = np.vstack(tuple(latent_samples))
+            real_idcs = np.vstack(tuple(real_idcs)).flatten()
+
+            self.model.train_generator(real_idcs, latent_samples, offset=4, optimizer=None) # TODO change offset to 16
 
             # images for tensorboard (TODO: unimplemented right now)
             #if ml % 50 == 1:
@@ -60,18 +72,22 @@ def main():
         num_gpus = torch.cuda.device_count()
         if num_gpus == 1:
             dev = torch.device('cuda')
-        else:
-            # TODO multiple gpus
+        #else:
     else:
         dev = torch.device('cpu')
-    #TODO: insert values, move to gpu
-    assignment = AssignmentTraining(dataset=None,
-                                    latent=None,
-                                    critic_net=None,
-                                    generator_net=None,
-                                    cost=None)
-    assignment.to(dev)
-    assignment.train(n_main_loops=200, n_critic_loops=10)
+
+    dataset = GaussianRing2D(batch_size=4, radius=5, N=2, num_data=32)
+    latent = MultiGaussianLatent(shape=2, batch_size=4, N=200)
+    critic = DenseCritic(name="critic", lr=1e-4, layer_dim=1024, xdim=2)
+    generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=512, xdim=2)
+
+    assignment = AssignmentTraining(dataset=dataset,
+                                    latent=latent,
+                                    critic_net=critic,
+                                    generator_net=generator,
+                                    cost="square")
+
+    assignment.train(n_main_loops=10, n_critic_loops=5)
 
 if __name__ == "__main__":
     main()

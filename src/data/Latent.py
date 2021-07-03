@@ -29,7 +29,9 @@ class Latent(ABC):
 class GaussianLatent(Latent):
 
     def __init__(self, shape=None, batch_size=None):
-        super().__init__(shape=shape, batch_size=batch_size)
+        super().__init__()
+        self.batch_size = batch_size
+        self.shape = shape
         self.name = "GaussianLatent"
 
     def sample(self, batch_size):
@@ -39,9 +41,11 @@ class GaussianLatent(Latent):
 
 class MultiGaussianLatent(Latent):
 
-    def __init__(self, shape=None, batch_size=None, N = 10000, sigma=0.1):
-        super().__init__(shape=shape, batch_size=batch_size)
-        self.name = "AssignmentLatent"
+    def __init__(self, shape=None, batch_size=None, N=10000, sigma=0.1):
+        super().__init__()
+        self.batch_size = batch_size
+        self.shape = shape
+        self.name = "MultiGaussianLatent"
         self.initial_points = torch.randn((N, self.shape))
         self.sigma = sigma
 

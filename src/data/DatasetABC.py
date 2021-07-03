@@ -86,13 +86,7 @@ class DatasetABC(ABC):
 
         :return: an iterator over the data
         """
-        if self.dataset_iterator is None:
-            dataset = tf.data.Dataset.from_tensor_slices(self.data.astype(np.float32)).repeat().batch(self.batch_size) #TODO: convert to pytorch
-            iterator = dataset.make_one_shot_iterator()
-            self.dataset_iterator = iterator
-            return iterator.get_next()
-        else:
-            return self.dataset_iterator.get_next()
+        pass
 
     def get_total_shape(self):
         """

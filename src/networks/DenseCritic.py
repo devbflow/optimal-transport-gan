@@ -5,6 +5,7 @@ import torch.nn.functional as F
 class DenseCritic(nn.Module):
 
     def __init__(self, name, lr, layer_dim, xdim):
+        super().__init__()
         # variables
         self.name = name
         self.lr = lr
@@ -17,22 +18,22 @@ class DenseCritic(nn.Module):
         self.dense2 = nn.Linear(self.layer_dim, self.layer_dim)
         self.dense3 = nn.Linear(self.layer_dim, self.layer_dim)
         self.dense4 = nn.Linear(self.layer_dim, 1)
-        self.lrelu = F.leaky_relu(negative_slope=0.2)
-        # standard PT slope == 0.01, different from TF (0.2), thus we change it here, respecting the TF code
 
     def forward(self, X):
+
         X = torch.reshape(X, shape=(-1, self.xdim))
         output = self.dense0(X)
-        output = self.lrelu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
+        # standard PT slope == 0.01, different from TF (0.2), thus we change it here, respecting the TF code
 
         output = self.dense1(output)
-        output = self.lrelu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
 
         output = self.dense2(output)
-        output = self.lrelu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
 
         output = self.dense3(output)
-        output = self.lrelu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
 
         output = self.dense4(output)
 

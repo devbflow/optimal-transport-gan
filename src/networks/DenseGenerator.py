@@ -4,7 +4,8 @@ import torch.nn.functional as F
 
 class DenseGenerator(nn.Module):
 
-    def __init__(self, channels, name=None, lr=None, layer_dim=1024, xdim=20):
+    def __init__(self, name=None, lr=None, layer_dim=1024, xdim=20):
+        super().__init__()
         # variables
         self.name = name
         self.lr = lr
@@ -25,15 +26,15 @@ class DenseGenerator(nn.Module):
 
     def forward(self, X):
         output = self.dense0(X)
-        output = F.leaky_relu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
         output = self.ln0(output)
 
         output = self.dense1(output)
-        output = F.leaky_relu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
         output = self.ln1(output)
 
         output = self.dense2(output)
-        output = F.leaky_relu(output)
+        output = F.leaky_relu(output, negative_slope=0.2)
         output = self.ln2(output)
 
         output = self.dense3(output)
