@@ -7,11 +7,11 @@ import numpy as np
 
 from data.Latent import *
 from data.Gaussian import GaussianRing2D
+from data.Mnist import Mnist32
+from data.Cifar import Cifar
 from networks.DenseCritic import DenseCritic
 from networks.DenseGenerator import DenseGenerator
 from models.AssignmentModel import AssignmentModel
-
-# TODO: import classes from directory
 
 class AssignmentTraining():
 
@@ -41,7 +41,7 @@ class AssignmentTraining():
         for ml in tqdm.tqdm(range(n_main_loops)):
             data_latent_ratio = self.dataset.dataset_size / self.latent.batch_size
             assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
-
+            #assign_loops = 2
             with tqdm.tqdm(range(n_critic_loops)) as crit_bar:
                 for cl in crit_bar:
                     assign_arr, latent_samples, real_idcs = self.model.find_assignments_critic(assign_loops)
@@ -58,7 +58,7 @@ class AssignmentTraining():
             latent_samples = np.vstack(tuple(latent_samples))
             real_idcs = np.vstack(tuple(real_idcs)).flatten()
 
-            self.model.train_generator(real_idcs, latent_samples, offset=4, optimizer=None) # TODO change offset to 16
+            self.model.train_generator(real_idcs, latent_samples, offset=16, optimizer=None)
 
             # images for tensorboard (TODO: unimplemented right now)
             #if ml % 50 == 1:
@@ -76,10 +76,14 @@ def main():
     else:
         dev = torch.device('cpu')
 
-    dataset = GaussianRing2D(batch_size=4, radius=5, N=2, num_data=32)
-    latent = MultiGaussianLatent(shape=2, batch_size=4, N=200)
-    critic = DenseCritic(name="critic", lr=1e-4, layer_dim=1024, xdim=2)
-    generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=512, xdim=2)
+    #dataset = GaussianRing2D(batch_size=16, radius=.5, N=10, num_data=16)
+    #dataset = Mnist32(batch_size=16, dataset_size=50000)
+    dataset = Cifar(batch_size=16, dataset_size=50000)
+    latent = MultiGaussianLatent(shape=250, batch_size=16, N=100)
+    critic = DenseCritic(name="critic", lr=1e-4, layer_dim=128, xdim=32*32*3)
+    generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=32*32*3)
+    #print("generator initial params = ", [p for p in generator.parameters()])
+    #print("critic initial params = ", [p for p in critic.parameters()])
 
     assignment = AssignmentTraining(dataset=dataset,
                                     latent=latent,
@@ -87,7 +91,10 @@ def main():
                                     generator_net=generator,
                                     cost="square")
 
-    assignment.train(n_main_loops=10, n_critic_loops=5)
+    assignment.train(n_main_loops=200, n_critic_loops=5)
+    #print("trained generator params = ", [p for p in assignment.generator.parameters()], [p for p in assignment.model.generator.parameters()])
+    #print("trained critic params = ", [p for p in assignment.critic.parameters()], [p for p in assignment.model.critic.parameters()])
+
 
 if __name__ == "__main__":
     main()

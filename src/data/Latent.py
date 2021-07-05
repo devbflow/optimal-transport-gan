@@ -53,6 +53,6 @@ class MultiGaussianLatent(Latent):
         if batch_size is None:
             batch_size = self.batch_size
         samples = np.random.default_rng().choice(self.initial_points, batch_size)
-        samples = torch.Tensor(samples)
+        samples = torch.from_numpy(samples)
         return samples + self.sigma * torch.randn((self.batch_size, self.shape))
 

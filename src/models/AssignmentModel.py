@@ -4,7 +4,7 @@ import numpy as np
 
 class AssignmentModel:
 
-    def __init__(self, dataset, latent, generator, critic, cost, A_couples=None, A_cost=None):
+    def __init__(self, dataset=None, latent=None, generator=None, critic=None, cost=None, A_couples=None, A_cost=None):
         ## Variables ##
         self.cost = cost
         self.dataset = dataset
@@ -38,18 +38,19 @@ class AssignmentModel:
         assign_arr = torch.zeros((self.dataset.dataset_size,))
         latent_sample_list, real_idx_list = [], []
 
-        for assign_loop in range(assign_loops):
+        for al in range(assign_loops):
 
             latent_points = self.gen_latent_batch(self.dataset.batch_size)
 
             for b in range(num_batches):
-                idx = np.arange(b * self.dataset.batch_size, (b+1)* self.dataset.batch_size)
+                indices = np.arange(b * self.dataset.batch_size, (b+1)* self.dataset.batch_size)
+                # add the current best from previous batch(es) into comparison
                 if b == 0:
-                    all_idx = idx
+                    all_idx = indices
                 else:
-                    all_idx = np.concatenate([current_best, idx], axis=0)
-
-                best = self.find_couples(real_batch=self.dataset.data[all_idx], generated_batch=self.generator(latent_points)) # returns indices of best couples from current batch
+                    all_idx = np.concatenate([current_best, indices], axis=0)
+                # returns indices of best couples from current batch
+                best = self.find_couples(real_batch=self.dataset.data[all_idx], generated_batch=self.generator(latent_points))
                 current_best = all_idx[best]
 
             assign_c = torch.tensor(current_best).reshape(-1, 1)
@@ -70,7 +71,7 @@ class AssignmentModel:
 
     ### Square ###
     def find_couples_unlimited_square(self, real_batch, generated_batch):
-        # use braodcasting to get a matrix with all fakes - each real
+        # use broadcasting to get a matrix with all fakes - each real
         z = torch.unsqueeze(generated_batch, dim=1) - real_batch
         # square distance for matrix
         norm_mat = 0.1 * torch.square(torch.linalg.norm(z, dim=2))

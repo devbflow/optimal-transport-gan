@@ -38,5 +38,5 @@ class DenseGenerator(nn.Module):
         output = self.ln2(output)
 
         output = self.dense3(output)
-        output = F.tanh(output)
+        output = torch.tanh(output)
         return output
