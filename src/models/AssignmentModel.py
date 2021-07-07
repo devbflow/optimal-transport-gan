@@ -42,7 +42,7 @@ class AssignmentModel:
 
         for _ in range(assign_loops):
             latent_points = self.gen_latent_batch(self.latent.batch_size)
-            latent_points.to(next(self.generator.parameters).device) # move to same device as generator
+            latent_points.to(next(self.generator.parameters()).device) # move to same device as generator
             generated_batch = self.generator(latent_points)
             '''
             ### New start ###
