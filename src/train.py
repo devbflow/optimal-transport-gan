@@ -86,14 +86,16 @@ def main():
     latent = GaussianLatent(shape=2, batch_size=dataloader.batch_size*10)
     critic = DenseCritic(name="critic", lr=1e-4, layer_dim=64, xdim=np.prod(dataset.data_shape))
     critic.to(device)
+    print(next(critic.parameters()).device)
     generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=np.prod(dataset.data_shape))
     generator.to(device)
+    print(next(generator.parameters()).device)
     assignment = AssignmentTraining(dataloader=dataloader,
                                     latent=latent,
                                     critic_net=critic,
                                     generator_net=generator,
                                     cost="square")
-
+    print(next(assignment.generator.parameters()).device)
     assignment.train(n_main_loops=5, n_critic_loops=100)
 
 
