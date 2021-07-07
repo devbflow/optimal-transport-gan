@@ -12,8 +12,8 @@ class AssignmentModel:
         self.dataset = dataloader.dataset
         self.dataloader = dataloader
         self.latent = latent
-        self.generator = generator
-        self.critic = critic
+        self.generator = generator.to(self.device)
+        self.critic = critic.to(self.device)
         self.A_couples = A_couples
         self.A_cost = A_cost
 
@@ -42,7 +42,8 @@ class AssignmentModel:
         latent_sample_list, real_idx_list = [], []
 
         for _ in range(assign_loops):
-            latent_points = self.gen_latent_batch(self.latent.batch_size).to(self.device) # move to same device as generator
+            latent_points = self.gen_latent_batch(self.latent.batch_size)
+            latent_points = latent_points.to(self.device) # move to same device as generator
             generated_batch = self.generator(latent_points)
             '''
             ### New start ###
@@ -140,9 +141,9 @@ class AssignmentModel:
     def train_critic(self, assign_arr, optimizer=None):
         if optimizer is None:
             optimizer = optim.RMSprop(self.critic.parameters(), lr=self.critic.lr)
-        assign_idx_local = np.nonzero(assign_arr)
-        assign_samples = self.dataset[assign_idx_local]
-        n_assign = assign_arr[assign_idx_local]
+        assign_idx_local = torch.nonzero(assign_arr)
+        assign_samples = self.dataset[assign_idx_local].to(self.device)
+        n_assign = assign_arr[assign_idx_local].to(self.device)
         # train step
         crit_cost = self.assign_critic_cost(assign_samples, n_assign)
         optimizer.zero_grad()
@@ -155,7 +156,6 @@ class AssignmentModel:
             optimizer = optim.RMSprop(self.generator.parameters(), lr=self.generator.lr)
 
         cost = []
-        latent_samples = torch.tensor(latent_samples)
         for c_idx in range(0, int(len(real_idcs) - offset + 1), int(offset)):
             real_batch = self.dataset.data[real_idcs[c_idx:c_idx+offset]]
             generated_batch = self.generator(latent_samples[c_idx:c_idx+offset])
@@ -165,4 +165,4 @@ class AssignmentModel:
             gen_cost.backward()
             optimizer.step()
             cost.append(gen_cost)
-        print("The transportation distance is", np.sqrt(np.average([c.detach().numpy() for c in cost])))
+        print("The transportation distance is", torch.sqrt(torch.mean(torch.as_tensor(cost)))

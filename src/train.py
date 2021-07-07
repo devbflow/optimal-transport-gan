@@ -54,13 +54,13 @@ class AssignmentTraining():
                     # real_idcs: list that contains the indices per batch as torch.tensors
 
                     self.model.train_critic(assign_arr, optimizer=None)
-                    n_non_assigned = len(assign_arr) - np.count_nonzero(assign_arr)
+                    n_non_assigned = len(assign_arr) - torch.count_nonzero(assign_arr)
                     crit_bar.set_description(
                             "Step 1: Number of non assigned points " + str(n_non_assigned)
-                            + ", Variance of perfect assignment " + str(np.var(assign_arr.detach().numpy())),
+                            + ", Variance of perfect assignment " + str(torch.var(assign_arr)),
                             refresh=False)
-            latent_samples = np.vstack(tuple(latent_samples))
-            real_idcs = np.vstack(tuple(real_idcs)).flatten()
+            latent_samples = torch.vstack(tuple(latent_samples))
+            real_idcs = torch.vstack(tuple(real_idcs)).flatten()
 
             self.model.train_generator(real_idcs, latent_samples, offset=16, optimizer=None)
 
