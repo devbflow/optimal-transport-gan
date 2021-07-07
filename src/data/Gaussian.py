@@ -1,9 +1,10 @@
 import torch
+from torch.utils.data import Dataset
 import numpy as np
 
-from data.DatasetABC import DatasetABC
+#from data.DatasetABC import DatasetABC
 
-class GaussianRing2D(DatasetABC):
+class GaussianRing2D(Dataset):
 
     def __init__(self, batch_size, radius, N=10, num_data=1000):
         super().__init__()
@@ -12,8 +13,8 @@ class GaussianRing2D(DatasetABC):
         self.labels = torch.repeat_interleave(torch.arange(N), num_data)
         self.name = "GaussianRing"
         self.batch_size = batch_size
-        self.shape = (2,)
-        self.dataset_size = N * num_data
+        self.data_shape = (2,)
+        #self.dataset_size = N * num_data
 
 
     @staticmethod
@@ -75,3 +76,9 @@ class GaussianRing2D(DatasetABC):
         if tensor:
             gaussians = torch.from_numpy(gaussians).float()
         return gaussians
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return self.data.shape[0]

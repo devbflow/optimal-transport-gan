@@ -3,11 +3,12 @@ import time
 import tqdm
 
 import torch
+from torch.utils.data import DataLoader
 import numpy as np
 
 from data.Latent import *
 from data.Gaussian import GaussianRing2D
-from data.Mnist import Mnist32
+from data.MNIST32 import MNIST32
 from data.Cifar import Cifar
 from networks.DenseCritic import DenseCritic
 from networks.DenseGenerator import DenseGenerator
@@ -17,20 +18,20 @@ class AssignmentTraining():
 
     def __init__(self,generator_net=None,
                  critic_net=None,
-                 dataset=None,
+                 dataloader=None,
                  latent=None,
                  cost=None):
-        self.dataset = dataset
+        self.dataloader = dataloader
         self.latent = latent
         self.critic = critic_net
         self.generator = generator_net
         self.cost = cost
-        self.experiment_name = self.dataset.name + '_'\
+        self.experiment_name = self.dataloader.dataset.name + '_'\
                             + self.cost + '_' \
                             + self.latent.name + '_' \
                             + time.strftime("_%Y-%m-%d_%H-%M-%S_")
         self.log_path = os.path.join(os.path.dirname(os.getcwd()), "logs" + os.sep + self.experiment_name)
-        self.model = AssignmentModel(self.dataset,
+        self.model = AssignmentModel(self.dataloader,
                                      self.latent,
                                      self.generator,
                                      self.critic,
@@ -39,9 +40,9 @@ class AssignmentTraining():
     def train(self, n_critic_loops=None, n_main_loops=None):
         #n_non_assigned = self.latent.batch_size
         for ml in tqdm.tqdm(range(n_main_loops)):
-            data_latent_ratio = self.dataset.dataset_size / self.latent.batch_size
-            assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
-            #assign_loops = 2
+            data_latent_ratio = len(self.dataloader.dataset) / self.latent.batch_size
+            #assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
+            assign_loops = 1
             with tqdm.tqdm(range(n_critic_loops)) as crit_bar:
                 for cl in crit_bar:
                     assign_arr, latent_samples, real_idcs = self.model.find_assignments_critic(assign_loops)
@@ -76,24 +77,28 @@ def main():
     else:
         dev = torch.device('cpu')
 
-    #dataset = GaussianRing2D(batch_size=16, radius=.5, N=10, num_data=16)
-    #dataset = Mnist32(batch_size=16, dataset_size=50000)
-    dataset = Cifar(batch_size=16, dataset_size=50000)
-    latent = MultiGaussianLatent(shape=250, batch_size=16, N=100)
-    critic = DenseCritic(name="critic", lr=1e-4, layer_dim=128, xdim=32*32*3)
-    generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=32*32*3)
-    #print("generator initial params = ", [p for p in generator.parameters()])
-    #print("critic initial params = ", [p for p in critic.parameters()])
+    dataset = GaussianRing2D(batch_size=10, radius=5, N=10, num_data=1000)
+    #dataset = Cifar()
+    #dataset = MNIST32(root='./data', download=True)
+    dataloader = DataLoader(dataset, batch_size=10, shuffle=False)
+    #print(len(dataloader))
+    #for idx, sample in enumerate(dataloader):
+    #    print(sample[0], sample[1])
+    #    print(idx)
+    #    break
 
-    assignment = AssignmentTraining(dataset=dataset,
+
+    latent = GaussianLatent(shape=2, batch_size=dataloader.batch_size*10)
+    critic = DenseCritic(name="critic", lr=1e-4, layer_dim=64, xdim=np.prod(dataset.data_shape))
+    generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=np.prod(dataset.data_shape))
+
+    assignment = AssignmentTraining(dataloader=dataloader,
                                     latent=latent,
                                     critic_net=critic,
                                     generator_net=generator,
                                     cost="square")
 
-    assignment.train(n_main_loops=200, n_critic_loops=5)
-    #print("trained generator params = ", [p for p in assignment.generator.parameters()], [p for p in assignment.model.generator.parameters()])
-    #print("trained critic params = ", [p for p in assignment.critic.parameters()], [p for p in assignment.model.critic.parameters()])
+    assignment.train(n_main_loops=5, n_critic_loops=100)
 
 
 if __name__ == "__main__":

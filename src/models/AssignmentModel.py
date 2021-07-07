@@ -1,13 +1,15 @@
 import torch
+from torch.utils.data import DataLoader, Subset
 import torch.optim as optim
 import numpy as np
 
 class AssignmentModel:
 
-    def __init__(self, dataset=None, latent=None, generator=None, critic=None, cost=None, A_couples=None, A_cost=None):
+    def __init__(self, dataloader=None, latent=None, generator=None, critic=None, cost=None, A_couples=None, A_cost=None):
         ## Variables ##
         self.cost = cost
-        self.dataset = dataset
+        self.dataset = dataloader.dataset
+        self.dataloader = dataloader
         self.latent = latent
         self.generator = generator
         self.critic = critic
@@ -34,23 +36,54 @@ class AssignmentModel:
 
 
     def find_assignments_critic(self, assign_loops=100):
-        num_batches = self.dataset.dataset_size // self.dataset.batch_size
-        assign_arr = torch.zeros((self.dataset.dataset_size,))
+        num_batches = len(self.dataset) // self.dataset.batch_size
+        assign_arr = torch.zeros((len(self.dataset),))
         latent_sample_list, real_idx_list = [], []
 
-        for al in range(assign_loops):
+        for _ in range(assign_loops):
+            latent_points = self.gen_latent_batch(self.latent.batch_size)
+            generated_batch = self.generator(latent_points)
+            '''
+            ### New start ###
+            for batch_idx, sample in enumerate(self.dataloader):
+                # get batch from sample, sample is tuple of (batch, labels)
+                real_batch, labels = sample
+                indices = np.arange(self.dataloader.batch_size) * batch_idx
+                if batch_idx != 0:
+                    #print(indices, curr_best)
+                    indices = np.vstack((curr_best, indices))
+                    # construct sub-dataset from given indices to combine previous best with current indices
+                    subset = Subset(self.dataloader.dataset, indices)
+                    subset_loader = DataLoader(subset, len(subset))
+                    real_batch = subset_loader.next()[0]
+                    print(real_batch.shape)
+                real_batch = real_batch.reshape(-1, np.prod(real_batch.shape[1:]))
+                best = self.find_couples(real_batch, generated_batch)
+                curr_best = indices[best]
 
-            latent_points = self.gen_latent_batch(self.dataset.batch_size)
+            #assert len(curr_best.shape) == 1
+            assign_c = torch.tensor(curr_best).unsqueeze(dim=1)
+            latent_samples.append(latent_points)
+            real_indcs.append(assign_c)
+            idx_values = torch.unique(assign_c, return_counts=True)
+            assign_arr[idx_values[0]] += idx_values[1]
+        return assign_arr, latent_samples, real_indcs
 
+            ### New end ###
+            '''
             for b in range(num_batches):
-                indices = np.arange(b * self.dataset.batch_size, (b+1)* self.dataset.batch_size)
+                indices = np.arange(b * self.dataloader.batch_size, (b+1)* self.dataloader.batch_size)
                 # add the current best from previous batch(es) into comparison
                 if b == 0:
                     all_idx = indices
                 else:
+                    #print("current_best = ", current_best, current_best.shape)
+                    #print("indices = ", indices, indices.shape)
                     all_idx = np.concatenate([current_best, indices], axis=0)
+                    #print("all_idx = ", all_idx, all_idx.shape)
+                    #break
                 # returns indices of best couples from current batch
-                best = self.find_couples(real_batch=self.dataset.data[all_idx], generated_batch=self.generator(latent_points))
+                best = self.find_couples(real_batch=self.dataset[all_idx], generated_batch=generated_batch)
                 current_best = all_idx[best]
 
             assign_c = torch.tensor(current_best).reshape(-1, 1)
@@ -71,6 +104,7 @@ class AssignmentModel:
 
     ### Square ###
     def find_couples_unlimited_square(self, real_batch, generated_batch):
+        #print(real_batch.shape, generated_batch.shape)
         # use broadcasting to get a matrix with all fakes - each real
         z = torch.unsqueeze(generated_batch, dim=1) - real_batch
         # square distance for matrix
