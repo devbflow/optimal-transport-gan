@@ -6,10 +6,11 @@ import numpy as np
 
 class GaussianRing2D(Dataset):
 
-    def __init__(self, batch_size, radius, N=10, num_data=1000):
+    def __init__(self, batch_size, radius, N=10, num_data=1000, device='cpu'):
         super().__init__()
         self.original_data = self.generate_data(radius, N=N, num_data=num_data, tensor=True)
         self.data = self.original_data.reshape((-1, 2))
+        self.data.to(device)
         self.labels = torch.repeat_interleave(torch.arange(N), num_data)
         self.name = "GaussianRing"
         self.batch_size = batch_size
@@ -81,4 +82,4 @@ class GaussianRing2D(Dataset):
         return self.data[index]
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.data.size(0)

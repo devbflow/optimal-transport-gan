@@ -69,15 +69,10 @@ class AssignmentTraining():
         pass
 
 def main():
-    if torch.cuda.is_available():
-        num_gpus = torch.cuda.device_count()
-        if num_gpus == 1:
-            dev = torch.device('cuda')
-        #else:
-    else:
-        dev = torch.device('cpu')
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-    dataset = GaussianRing2D(batch_size=10, radius=5, N=10, num_data=1000)
+    dataset = GaussianRing2D(batch_size=10, radius=5, N=10, num_data=1000, device=device)
     #dataset = Cifar()
     #dataset = MNIST32(root='./data', download=True)
     dataloader = DataLoader(dataset, batch_size=10, shuffle=False)
@@ -90,8 +85,9 @@ def main():
 
     latent = GaussianLatent(shape=2, batch_size=dataloader.batch_size*10)
     critic = DenseCritic(name="critic", lr=1e-4, layer_dim=64, xdim=np.prod(dataset.data_shape))
+    critic.to(device)
     generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=np.prod(dataset.data_shape))
-
+    generator.to(device)
     assignment = AssignmentTraining(dataloader=dataloader,
                                     latent=latent,
                                     critic_net=critic,
