@@ -165,4 +165,4 @@ class AssignmentModel:
             gen_cost.backward()
             optimizer.step()
             cost.append(gen_cost)
-        print("The transportation distance is", torch.sqrt(torch.mean(torch.as_tensor(cost)))
+        print("The transportation distance is", torch.sqrt(torch.mean(torch.as_tensor(cost))))
