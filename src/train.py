@@ -9,7 +9,7 @@ import numpy as np
 from data.Latent import *
 from data.Gaussian import GaussianRing2D
 from data.MNIST32 import MNIST32
-from data.Cifar import Cifar
+#from data.Cifar import Cifar
 from networks.DenseCritic import DenseCritic
 from networks.DenseGenerator import DenseGenerator
 from models.AssignmentModel import AssignmentModel
@@ -20,12 +20,14 @@ class AssignmentTraining():
                  critic_net=None,
                  dataloader=None,
                  latent=None,
-                 cost=None):
+                 cost=None,
+                 device='cpu'):
         self.dataloader = dataloader
         self.latent = latent
         self.critic = critic_net
         self.generator = generator_net
         self.cost = cost
+        self.device = device
         self.experiment_name = self.dataloader.dataset.name + '_'\
                             + self.cost + '_' \
                             + self.latent.name + '_' \
@@ -35,7 +37,8 @@ class AssignmentTraining():
                                      self.latent,
                                      self.generator,
                                      self.critic,
-                                     self.cost)
+                                     self.cost,
+                                     self.device)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
         #n_non_assigned = self.latent.batch_size
@@ -70,7 +73,7 @@ class AssignmentTraining():
 
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
+    #print(device)
 
     dataset = GaussianRing2D(batch_size=10, radius=5, N=10, num_data=1000, device=device)
     #dataset = Cifar()
@@ -85,17 +88,15 @@ def main():
 
     latent = GaussianLatent(shape=2, batch_size=dataloader.batch_size*10)
     critic = DenseCritic(name="critic", lr=1e-4, layer_dim=64, xdim=np.prod(dataset.data_shape))
-    critic.to(device)
-    print(next(critic.parameters()).device)
     generator = DenseGenerator(name="generator", lr=5e-5, layer_dim=64, xdim=np.prod(dataset.data_shape))
-    generator.to(device)
-    print(next(generator.parameters()).device)
+
     assignment = AssignmentTraining(dataloader=dataloader,
                                     latent=latent,
                                     critic_net=critic,
                                     generator_net=generator,
-                                    cost="square")
-    print(next(assignment.generator.parameters()).device)
+                                    cost="square",
+                                    device=device)
+
     assignment.train(n_main_loops=5, n_critic_loops=100)
 
 

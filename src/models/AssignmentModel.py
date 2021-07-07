@@ -5,8 +5,9 @@ import numpy as np
 
 class AssignmentModel:
 
-    def __init__(self, dataloader=None, latent=None, generator=None, critic=None, cost=None, A_couples=None, A_cost=None):
+    def __init__(self, dataloader=None, latent=None, generator=None, critic=None, cost=None, device='cpu', A_couples=None, A_cost=None):
         ## Variables ##
+        self.device = device
         self.cost = cost
         self.dataset = dataloader.dataset
         self.dataloader = dataloader
@@ -41,18 +42,17 @@ class AssignmentModel:
         latent_sample_list, real_idx_list = [], []
 
         for _ in range(assign_loops):
-            latent_points = self.gen_latent_batch(self.latent.batch_size)
-            latent_points.to(next(self.generator.parameters()).device) # move to same device as generator
+            latent_points = self.gen_latent_batch(self.latent.batch_size).to(self.device) # move to same device as generator
             generated_batch = self.generator(latent_points)
             '''
             ### New start ###
             for batch_idx, sample in enumerate(self.dataloader):
                 # get batch from sample, sample is tuple of (batch, labels)
                 real_batch, labels = sample
-                indices = np.arange(self.dataloader.batch_size) * batch_idx
+                indices = torch.arange(self.dataloader.batch_size) + batch_idx * self.dataloader.batch_size
                 if batch_idx != 0:
                     #print(indices, curr_best)
-                    indices = np.vstack((curr_best, indices))
+                    indices = torch.cat((curr_best, indices), dim=0)
                     # construct sub-dataset from given indices to combine previous best with current indices
                     subset = Subset(self.dataloader.dataset, indices)
                     subset_loader = DataLoader(subset, len(subset))
@@ -73,21 +73,17 @@ class AssignmentModel:
             ### New end ###
             '''
             for b in range(num_batches):
-                indices = np.arange(b * self.dataloader.batch_size, (b+1)* self.dataloader.batch_size)
+                indices = torch.arange(b * self.dataloader.batch_size, (b+1)* self.dataloader.batch_size)
                 # add the current best from previous batch(es) into comparison
                 if b == 0:
                     all_idx = indices
                 else:
-                    #print("current_best = ", current_best, current_best.shape)
-                    #print("indices = ", indices, indices.shape)
-                    all_idx = np.concatenate([current_best, indices], axis=0)
-                    #print("all_idx = ", all_idx, all_idx.shape)
-                    #break
+                    all_idx = torch.cat([current_best, indices], dim=0)
                 # returns indices of best couples from current batch
-                best = self.find_couples(real_batch=self.dataset[all_idx], generated_batch=generated_batch)
+                best = self.find_couples(real_batch=self.dataset[all_idx].to(self.device), generated_batch=generated_batch)
                 current_best = all_idx[best]
 
-            assign_c = torch.tensor(current_best).reshape(-1, 1)
+            assign_c = current_best.reshape(-1, 1)
             latent_sample_list.append(latent_points)
             real_idx_list.append(assign_c)
             idx_value = torch.unique(assign_c, return_counts=True)
@@ -145,7 +141,7 @@ class AssignmentModel:
         if optimizer is None:
             optimizer = optim.RMSprop(self.critic.parameters(), lr=self.critic.lr)
         assign_idx_local = np.nonzero(assign_arr)
-        assign_samples = self.dataset.data[assign_idx_local]
+        assign_samples = self.dataset[assign_idx_local]
         n_assign = assign_arr[assign_idx_local]
         # train step
         crit_cost = self.assign_critic_cost(assign_samples, n_assign)
