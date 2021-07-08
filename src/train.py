@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from data.Latent import *
-from data.Gaussian import GaussianRing2D
+from data.Gaussian import GaussianRing2D, GaussianNormal
 from data.MNIST32 import MNIST32
 #from data.Cifar import Cifar
 from networks.DenseCritic import DenseCritic
@@ -41,14 +41,10 @@ class AssignmentTraining():
                                      self.device)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
-        # set train mode to True for pytorch modules
-        self.critic.train()
-        self.generator.train()
-        #n_non_assigned = self.latent.batch_size
         for ml in tqdm.tqdm(range(n_main_loops)):
             data_latent_ratio = len(self.dataloader.dataset) / self.latent.batch_size
-            #assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
-            assign_loops = 1
+            assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
+            #assign_loops = 1
             with tqdm.tqdm(range(n_critic_loops)) as crit_bar:
                 for cl in crit_bar:
                     assign_arr, latent_samples, real_idcs = self.model.find_assignments_critic(assign_loops)
@@ -77,11 +73,11 @@ class AssignmentTraining():
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #print(device)
-
-    dataset = GaussianRing2D(batch_size=50, radius=5, N=10, num_data=1000, device=device)
+    dataset = GaussianNormal(batch_size=100, device=device)
+    #dataset = GaussianRing2D(batch_size=50, radius=5, N=10, num_data=1000, device=device)
     #dataset = Cifar()
     #dataset = MNIST32(root='./data', download=True)
-    dataloader = DataLoader(dataset, batch_size=50, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=dataset.batch_size, shuffle=False)
     #print(len(dataloader))
     #for idx, sample in enumerate(dataloader):
     #    print(sample[0], sample[1])

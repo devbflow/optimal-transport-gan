@@ -138,6 +138,7 @@ class AssignmentModel:
     ### Train Critic/Generator ###
 
     def train_critic(self, assign_arr, optimizer=None):
+        self.critic.train()
         if optimizer is None:
             optimizer = optim.RMSprop(self.critic.parameters(), lr=self.critic.lr)
         assign_idx_local = torch.nonzero(assign_arr)
@@ -151,6 +152,7 @@ class AssignmentModel:
 
 
     def train_generator(self, real_idcs, latent_samples,  offset=2000, optimizer=None):
+        self.generator.train()
         if optimizer is None:
             optimizer = optim.RMSprop(self.generator.parameters(), lr=self.generator.lr)
 
@@ -163,5 +165,5 @@ class AssignmentModel:
             optimizer.zero_grad()
             gen_cost.backward()
             optimizer.step()
-            cost.append(gen_cost)
-        print("The transportation distance is", torch.sqrt(torch.mean(torch.as_tensor(cost))))
+            cost.append(gen_cost.detach())
+        print("The transportation distance is", torch.sqrt(torch.mean(torch.as_tensor(cost).detach())))
