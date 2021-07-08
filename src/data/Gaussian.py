@@ -2,8 +2,6 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
-#from data.DatasetABC import DatasetABC
-
 class GaussianRing2D(Dataset):
 
     def __init__(self, batch_size, radius, N=10, num_data=1000, device='cpu'):
@@ -76,6 +74,21 @@ class GaussianRing2D(Dataset):
         if tensor:
             gaussians = torch.from_numpy(gaussians).float()
         return gaussians
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return self.data.size(0)
+
+class GaussianNormal(Dataset):
+
+    def __init__(self, batch_size, shape=2, num_data=1000, device='cpu', seed=None):
+        self.data = torch.randn((num_data, shape), device=device)
+        self.labels = torch.zeros((num_data, shape))
+        self.name = "GaussianNormal"
+        self.batch_size = batch_size
+        self.data_shape = (2,)
 
     def __getitem__(self, index):
         return self.data[index]
