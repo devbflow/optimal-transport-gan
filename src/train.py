@@ -78,10 +78,10 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #print(device)
 
-    dataset = GaussianRing2D(batch_size=10, radius=5, N=10, num_data=1000, device=device)
+    dataset = GaussianRing2D(batch_size=50, radius=5, N=10, num_data=1000, device=device)
     #dataset = Cifar()
     #dataset = MNIST32(root='./data', download=True)
-    dataloader = DataLoader(dataset, batch_size=10, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=50, shuffle=False)
     #print(len(dataloader))
     #for idx, sample in enumerate(dataloader):
     #    print(sample[0], sample[1])
