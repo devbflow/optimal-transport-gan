@@ -93,7 +93,7 @@ class AssignmentModel:
     # A_w(X), X = real_samples
     def assign_critic_cost(self, assign_samples, n_assign):
         crit_assign = self.critic(assign_samples).squeeze()
-        crit_assign_weigthed = torch.mul(n_assign, assign_samples)
+        crit_assign_weigthed = torch.mul(n_assign, crit_assign)
         assign_w_n_ratio = torch.sum(crit_assign_weigthed) / torch.sum(n_assign)
         dataset_mean = torch.mean(self.critic(self.dataset[:len(self.dataset)]))
         crit_cost = -(assign_w_n_ratio - dataset_mean)
