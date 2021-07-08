@@ -41,6 +41,9 @@ class AssignmentTraining():
                                      self.device)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
+        # set train mode to True for pytorch modules
+        self.critic.train()
+        self.generator.train()
         #n_non_assigned = self.latent.batch_size
         for ml in tqdm.tqdm(range(n_main_loops)):
             data_latent_ratio = len(self.dataloader.dataset) / self.latent.batch_size

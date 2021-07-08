@@ -1,7 +1,6 @@
 import torch
 from torch.utils.data import DataLoader, Subset
 import torch.optim as optim
-import numpy as np
 
 class AssignmentModel:
 
@@ -59,7 +58,7 @@ class AssignmentModel:
                     subset_loader = DataLoader(subset, len(subset))
                     real_batch = subset_loader.next()[0]
                     print(real_batch.shape)
-                real_batch = real_batch.reshape(-1, np.prod(real_batch.shape[1:]))
+                real_batch = real_batch.reshape(-1, torch.prod(real_batch.shape[1:]))
                 best = self.find_couples(real_batch, generated_batch)
                 curr_best = indices[best]
 
@@ -93,10 +92,10 @@ class AssignmentModel:
 
     # A_w(X), X = real_samples
     def assign_critic_cost(self, assign_samples, n_assign):
-        crit_assign = self.critic(assign_samples)
+        crit_assign = self.critic(assign_samples).squeeze()
         crit_assign_weigthed = torch.mul(n_assign, assign_samples)
         assign_w_n_ratio = torch.sum(crit_assign_weigthed) / torch.sum(n_assign)
-        dataset_mean = torch.mean(self.critic(self.dataset.data))
+        dataset_mean = torch.mean(self.critic(self.dataset[:len(self.dataset)]))
         crit_cost = -(assign_w_n_ratio - dataset_mean)
         return crit_cost
 
