@@ -4,6 +4,7 @@ import tqdm
 
 import torch
 from torch.utils.data import DataLoader
+import torch.optim as optim
 import numpy as np
 
 from data.Latent import *
@@ -13,6 +14,11 @@ from data.MNIST32 import MNIST32
 from networks.DenseCritic import DenseCritic
 from networks.DenseGenerator import DenseGenerator
 from models.AssignmentModel import AssignmentModel
+
+# set seed for reproducibility
+torch.manual_seed(0)
+np.random.seed(0)
+
 
 class AssignmentTraining():
 
@@ -41,6 +47,8 @@ class AssignmentTraining():
                                      self.device)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
+        crit_opt = optim.RMSprop(self.critic.parameters(), lr=self.critic.lr)
+        gen_opt = optim.RMSprop(self.generator.parameters(), lr=self.generator.lr)
         for ml in tqdm.tqdm(range(n_main_loops)):
             data_latent_ratio = len(self.dataloader.dataset) / self.latent.batch_size
             assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
@@ -51,8 +59,7 @@ class AssignmentTraining():
                     # assign_arr: torch.tensor with assign_arr[i] = number of assignments to real data point i
                     # latent_samples: list that contains
                     # real_idcs: list that contains the indices per batch as torch.tensors
-
-                    self.model.train_critic(assign_arr, optimizer=None)
+                    self.model.train_critic(assign_arr, optimizer=crit_opt)
                     n_non_assigned = len(assign_arr) - torch.count_nonzero(assign_arr)
                     crit_bar.set_description(
                             "Step 1: Number of non assigned points " + str(n_non_assigned)
@@ -61,7 +68,7 @@ class AssignmentTraining():
             latent_samples = torch.vstack(tuple(latent_samples))
             real_idcs = torch.vstack(tuple(real_idcs)).flatten()
 
-            self.model.train_generator(real_idcs, latent_samples, offset=16, optimizer=None)
+            self.model.train_generator(real_idcs, latent_samples, offset=16, optimizer=gen_opt)
 
             # images for tensorboard (TODO: unimplemented right now)
             #if ml % 50 == 1:
@@ -96,7 +103,7 @@ def main():
                                     cost="square",
                                     device=device)
 
-    assignment.train(n_main_loops=5, n_critic_loops=100)
+    assignment.train(n_main_loops=200, n_critic_loops=10)
 
 
 if __name__ == "__main__":
