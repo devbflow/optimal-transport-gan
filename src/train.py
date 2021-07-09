@@ -47,14 +47,19 @@ class AssignmentTraining():
                                      self.device)
 
     def train(self, n_critic_loops=None, n_main_loops=None):
+        # init optimizers
         crit_opt = optim.RMSprop(self.critic.parameters(), lr=self.critic.lr)
         gen_opt = optim.RMSprop(self.generator.parameters(), lr=self.generator.lr)
-        for ml in tqdm.tqdm(range(n_main_loops)):
+
+        for ml in tqdm.tqdm(range(n_main_loops)): # generator train loops
+
             data_latent_ratio = len(self.dataloader.dataset) / self.latent.batch_size
             assign_loops = int(10 * data_latent_ratio * np.sqrt(ml / n_main_loops)) + 10
             #assign_loops = 1
+
             with tqdm.tqdm(range(n_critic_loops)) as crit_bar:
-                for cl in crit_bar:
+                for cl in crit_bar: # critic train loop
+
                     assign_arr, latent_samples, real_idcs = self.model.find_assignments_critic(assign_loops)
                     # assign_arr: torch.tensor with assign_arr[i] = number of assignments to real data point i
                     # latent_samples: list that contains

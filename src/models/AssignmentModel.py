@@ -13,8 +13,8 @@ class AssignmentModel:
         self.latent = latent
         self.generator = generator.to(self.device)
         self.critic = critic.to(self.device)
-        self.A_couples = A_couples
-        self.A_cost = A_cost
+        #self.A_couples = A_couples
+        #self.A_cost = A_cost
 
         #self.power_factors = (0.0448, 0.2856)
 
@@ -79,6 +79,7 @@ class AssignmentModel:
                     all_idx = indices
                 else:
                     all_idx = torch.cat([current_best, indices], dim=0)
+
                 # returns indices of best couples from current batch
                 best = self.find_couples(real_batch=self.dataset[all_idx].to(self.device), generated_batch=generated_batch)
                 current_best = all_idx[best]
@@ -86,8 +87,10 @@ class AssignmentModel:
             assign_c = current_best.reshape(-1, 1)
             latent_sample_list.append(latent_points)
             real_idx_list.append(assign_c)
+
             idx_value = torch.unique(assign_c, return_counts=True)
             assign_arr[idx_value[0]] += idx_value[1]
+
         return assign_arr, latent_sample_list, real_idx_list
 
     # A_w(X), X = real_samples
