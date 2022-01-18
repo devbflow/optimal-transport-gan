@@ -1,12 +1,15 @@
 import matplotlib
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from torchvision import datasets
+from torchvision import transforms
+
 
 from data.DatasetABC import DatasetABC
 
 matplotlib.use('Agg')
-import scipy.misc
+
 
 
 class Mnist32(DatasetABC):
@@ -20,7 +23,7 @@ class Mnist32(DatasetABC):
         """
         # Load data.
         super().__init__()
-        self.shape = (32, 32, 1)
+        self.shape = (1, 32, 32)
         data, labels = self.generate_data()
         # Initialize class.
         self.name = "Mnist"
@@ -28,17 +31,26 @@ class Mnist32(DatasetABC):
         self.labels = labels
         self.dataset_size = dataset_size
         self.batch_size = batch_size
+        self.dataset_iterator = self.get_iterator()
 
     @staticmethod
     def generate_data():
-        shape = (32, 32, 1)
-        mnist = datasets.MNIST(root='./data', download=True)
-        data = mnist.data
-        label = mnist.targets
-        imgs_32 = [scipy.misc.imresize(data[idx], shape)
-                   for idx in range(data.shape[0])]
-        data = np.expand_dims(np.asarray(imgs_32).astype(np.float32), axis=3)
-        data = data / 255
-        data = (data - 0.5) / 0.5
-        data = data.reshape(data.shape[0], -1)
+        transform = transforms.Compose([
+            transforms.Resize((32,32)),
+            transforms.ToTensor(),
+
+            ])
+        self.mnist = datasets.MNIST(root='./data', download=True, transform=transform)
+        data = self.mnist.data
+        label = self.mnist.targets
+        #data = data.reshape(data.shape[0], -1)
         return data, label
+
+    def get_iterator(self):
+        """
+        Returns DataLoader for the dataset.
+        """
+        return DataLoader(self.mnist, batch_size=self.batch_size, shuffle=True)
+
+    def __getitem__(self, index):
+        data, label = self.dataset_iterator
